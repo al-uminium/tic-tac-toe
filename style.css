@@ -103,5 +103,29 @@ html, body {
 }
 
 .player-page {
-    
+    display: grid;
+    width: 100%;
+    height: 100%;
+    font-size: 3.5rem;
+}
+
+/* .mark-radio-container input[type="radio"] {
+    opacity: 0;
+    width: 0;
+    position: fixed;
+} */
+
+.mark-radio-container {
+    display: flex;
+    justify-content: center;
+}
+
+.mark-radio-container label {
+    width: 5rem;
+    height: 5rem;
+    display: inline-block;
+}
+
+.mark-radio-container input[type="radio"]:focus + label {
+    transform: scale(1.2);
 }
