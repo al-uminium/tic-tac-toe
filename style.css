@@ -25,7 +25,7 @@ html, body {
     font-family: 'Koulen', cursive;
 }
 
-.landing-page {
+#landing-page {
     display: grid;
     grid-template-rows: 1fr 2fr;
     height: 100%;
@@ -38,7 +38,7 @@ html, body {
     width: 100%;
 }
 
-.board-page {
+#board-page {
     height: 100%;
     width: 100%;
     display: grid;
@@ -81,7 +81,7 @@ html, body {
     max-width: 100vw;
 }
 
-.current-player-status {
+.current-player-turn {
     display: flex;
     width: 100%;
     height: 100%;
@@ -102,18 +102,23 @@ html, body {
     justify-content: space-around;
 }
 
-.player-page {
+#player-page {
     display: grid;
     width: 100%;
     height: 100%;
     font-size: 3.5rem;
+    place-items: center;
 }
 
-/* .mark-radio-container input[type="radio"] {
+.player-page-header {
+    text-align: center;
+}
+
+.mark-radio-container input[type="radio"] {
     opacity: 0;
     width: 0;
     position: fixed;
-} */
+}
 
 .mark-radio-container {
     display: flex;
@@ -123,9 +128,16 @@ html, body {
 .mark-radio-container label {
     width: 5rem;
     height: 5rem;
-    display: inline-block;
+    display: grid;
+    place-self: center;
+    text-align: center;
 }
 
-.mark-radio-container input[type="radio"]:focus + label {
-    transform: scale(1.2);
+.mark-radio-container input[type="radio"]:checked + label {
+    transform: scale(1.3);
+    transition: 0.5s;
+}
+
+.hide {
+    display: none;
 }
