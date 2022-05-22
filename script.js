@@ -3,7 +3,7 @@ const container = document.querySelector(".container");
 const currentPlayerTurn = document.querySelector(".current-player-turn")
 const boardGrid = document.querySelector(".board-grid")
 
-//IIFE to control pages
+//Module for display
 const displayController = (() => {
     const landingPage = () => {
         container.innerHTML = `
@@ -30,10 +30,17 @@ const displayController = (() => {
         container.id = "player-page"
     }
 
-    const boardPage = () => {
+    const boardPage = (currentPlayer) => {
+        let currentPlayerTurn = currentPlayer
+        let HTMLsnippet = `<div class="current-player-turn">${currentPlayerTurn}'s turn</div>`
+        if (gameBoard.playingWithAI()) {
+            HTMLsnippet = `<div class="current-player-turn"></div>`
+        }
+
         container.innerHTML = `
-            <div class="current-player-turn"></div>
+            ${HTMLsnippet}
             <div class="board-container">
+                <div id="grid-0" class="board-grid"></div>
                 <div id="grid-1" class="board-grid"></div>
                 <div id="grid-2" class="board-grid"></div>
                 <div id="grid-3" class="board-grid"></div>
@@ -42,7 +49,6 @@ const displayController = (() => {
                 <div id="grid-6" class="board-grid"></div>
                 <div id="grid-7" class="board-grid"></div>
                 <div id="grid-8" class="board-grid"></div>
-                <div id="grid-9" class="board-grid"></div>
             </div>
             <div class="game-status-container hide">
                 <div class="game-status"></div>
@@ -55,50 +61,106 @@ const displayController = (() => {
         container.id = "board-page"
     }
 
+    const updateCurrentPlayerStatus = () => {
+        const currentPlayerTurn = document.querySelector(".current-player-turn")
+        if (!gameBoard.playingWithAI()) {
+            currentPlayerTurn.innerText = `${gameBoard.getCurrentPlayer()}'s turn`
+        }
+    }
+
+    const updateBoardGrids = (grid) => {
+        grid.innerText = gameBoard.getCurrentPlayer();
+    }
+
     return {
         landingPage,
         playerPage,
         boardPage,
+        updateCurrentPlayerStatus,
+        updateBoardGrids,
     }
 })();
 
+// Module for game board
+const gameBoard = ((e) => {
+    let board = [
+        "", "", "",
+        "", "", "",
+        "", "", ""
+    ]
 
+    let currentPlayer = "X";
+    let playWithAI = false;
 
+    const winArrays = [
+        // horizontal
+        [0, 1, 2],
+        [3, 4, 5],
+        [6, 7, 8],
+        // vertical
+        [0, 3, 6],
+        [1, 4, 7],
+        [2, 5, 8],
+        // diagonal
+        [0, 4, 8],
+        [2, 4, 6]
+    ]
 
-
-
-
-
-
-
-
-const board = [
-    "", "", "",
-    "", "", "",
-    "", "", ""
-]
-
-const winArrays = [
-    // horizontal
-    [0, 1, 2],
-    [3, 4, 5],
-    [6, 7, 8],
-    // vertical
-    [0, 3, 6],
-    [1, 4, 7],
-    [2, 5, 8],
-    // diagonal
-    [0, 4, 8],
-    [2, 4, 6]
-]
-
-const checkWinner = (board) => {
-    for (const arr of winArrays) {
-        if (board[arr[0]] && board[arr[0]] == board[arr[1]] && board[arr[1]] == board[arr[2]]) {
-            console.log(`Winning array is: ${arr}`)
+    const checkWinner = (board) => {
+        for (const arr of winArrays) {
+            if (board[arr[0]] && board[arr[0]] == board[arr[1]] && board[arr[1]] == board[arr[2]]) {
+                console.log(`Winning array is: ${arr}`)
+            }
         }
     }
-}
+
+    const updateBoard = (e, currentPlayerTurn) => {
+        let gridID = getGridID(e)
+        if (!board[gridID]) {
+            board[gridID] = currentPlayerTurn
+            displayController.updateBoardGrids(e)
+            checkWinner(board)
+        }
+    }
+
+    const printBoard = () => {
+        console.log(board)
+    }
+
+    const resetBoard = () => {
+        board = [
+            "", "", "",
+            "", "", "",
+            "", "", ""
+        ]
+    }
+
+    const getCurrentPlayer = () => {
+        return currentPlayer
+    }
+
+    const updateCurrentPlayer = () => {
+        currentPlayer = currentPlayer == "X" ? "O" : "X"
+    }
+
+    const playingWithAI = () => {
+        return playWithAI
+    }
+
+    const updatePlayWithAI = (bool) => {
+        playWithAI = bool
+    }
+
+    return {
+        updateBoard,
+        printBoard,
+        resetBoard,
+        getCurrentPlayer,
+        updateCurrentPlayer, 
+        playingWithAI,
+        updatePlayWithAI,
+    }
+})();
 
 const testCase_1 = [
     "", "", "",
@@ -112,7 +174,12 @@ const testCase_2 = [
     "", "X", ""
 ]
 
-checkWinner(testCase_2)
+
+// helper functions 
+const getGridID = (grid) => {
+    let gridID = grid.target.id
+    gridID = gridID.slice(gridID.length-1, gridID.length);
+}
 
 
 displayController.landingPage()
@@ -123,10 +190,28 @@ displayController.landingPage()
 container.addEventListener("click", (e) => {
     if (e.target.id == "play-with-friends") {
         displayController.playerPage()
+
     } else if (e.target.id == "play-with-AI" || e.target.id == "start-btn") {
-        displayController.boardPage()
+        let playingWithAI = e.target.id == "play-with-AI" ? true : false
+        gameBoard.updatePlayWithAI(playingWithAI)
+
+        if (!playingWithAI) {
+            let OMark = document.querySelector("#mark-O")
+            // player is defaulted to X
+            if (OMark.checked) {
+                gameBoard.updateCurrentPlayer()
+            }
+        } 
+
+        displayController.boardPage(gameBoard.getCurrentPlayer())
+
+    } else if (e.target.className == "board-grid") {
+        gameBoard.updateBoard(e, "X")
+        gameBoard.printBoard()
+        e.target.innerText = gameBoard.getCurrentPlayer()
+        gameBoard.updateCurrentPlayer()
+        displayController.updateCurrentPlayerStatus()
     } else {
         console.log(e.target.id)
     }
-}
-)
+})
