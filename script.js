@@ -18,7 +18,7 @@ const displayController = (() => {
 
     const playerPage = () => {
         container.innerHTML = `
-            <div class="player-page-header">Choose your mark</div>
+            <div class="player-page-header">Choose your mark<br><span>X starts first</span></div>
             <div class="mark-radio-container">
                 <input type="radio" name="mark" id="mark-X">
                 <label for="mark-X">X</label>
@@ -34,7 +34,7 @@ const displayController = (() => {
         let currentPlayerTurn = currentPlayer
         let HTMLsnippet = `<div class="current-player-turn">${currentPlayerTurn}'s turn</div>`
         if (gameBoard.playingWithAI()) {
-            HTMLsnippet = `<div class="current-player-turn"></div>`
+            HTMLsnippet = `<div class="current-player-turn">STILL A WIP</div>`
         }
 
         container.innerHTML = `
@@ -72,12 +72,35 @@ const displayController = (() => {
         grid.innerText = gameBoard.getCurrentPlayer();
     }
 
+    const unhideGameStatusContainer = () => {
+        const gameStatusContainer = document.querySelector(".game-status-container")
+        gameStatusContainer.classList.toggle("hide")
+    }
+
+    const updateGameStatus = () => {
+        const gameStatus = document.querySelector(".game-status")
+        let winningPlayer = gameBoard.getCurrentPlayer()
+        
+        // if it's a draw
+        if (!gameBoard.checkForDraws) {
+            gameStatus.innerText = "It's a draw!"
+        }
+
+        if (gameBoard.playingWithAI()) {
+            gameStatus.innerText = winningPlayer == "O" ? "You lost :(" : "You won!"
+        } else {
+            gameStatus.innerText = `${winningPlayer} won!`
+        }
+    }
+
     return {
         landingPage,
         playerPage,
         boardPage,
         updateCurrentPlayerStatus,
         updateBoardGrids,
+        unhideGameStatusContainer,
+        updateGameStatus,
     }
 })();
 
@@ -91,6 +114,7 @@ const gameBoard = ((e) => {
 
     let currentPlayer = "X";
     let playWithAI = false;
+    let gameFinished = false;
 
     const winArrays = [
         // horizontal
@@ -106,29 +130,30 @@ const gameBoard = ((e) => {
         [2, 4, 6]
     ]
 
-    const checkWinner = (board) => {
+    const checkWinner = () => {
         for (const arr of winArrays) {
             if (board[arr[0]] && board[arr[0]] == board[arr[1]] && board[arr[1]] == board[arr[2]]) {
-                console.log(`Winning array is: ${arr}`)
+                console.log(`Winning array is: ${arr}, winner is ${getCurrentPlayer()}`)
+                gameFinished = true
             }
         }
     }
 
-    const updateBoard = (e, currentPlayerTurn) => {
-        let gridID = getGridID(e)
-        if (!board[gridID]) {
-            board[gridID] = currentPlayerTurn
-            displayController.updateBoardGrids(e.target)
-            updateCurrentPlayer()
-            displayController.updateCurrentPlayerStatus()
-            checkWinner(board)
-        }
+    const checkForDraws = () => {
+        return board.includes("")
     }
 
+    const updateBoard = (id, currentPlayerTurn) => {
+        if (!board[id]) {
+            board[id] = currentPlayerTurn
+            return true
+        } else {
+            return false
+        }
+    }
     const printBoard = () => {
         console.log(board)
     }
-
     const resetBoard = () => {
         board = [
             "", "", "",
@@ -136,21 +161,24 @@ const gameBoard = ((e) => {
             "", "", ""
         ]
     }
-
     const getCurrentPlayer = () => {
         return currentPlayer
     }
-
     const updateCurrentPlayer = () => {
         currentPlayer = currentPlayer == "X" ? "O" : "X"
     }
-
     const playingWithAI = () => {
         return playWithAI
     }
-
     const updatePlayWithAI = (bool) => {
         playWithAI = bool
+    }
+    const isGameFinished = () => {
+        return gameFinished
+    }
+
+    const newGame = () => {
+        gameFinished = false
     }
 
     return {
@@ -161,27 +189,57 @@ const gameBoard = ((e) => {
         updateCurrentPlayer, 
         playingWithAI,
         updatePlayWithAI,
+        checkWinner,
+        isGameFinished,
+        newGame,
+        checkForDraws,
     }
 })();
 
-const testCase_1 = [
-    "", "", "",
-    "", "", "",
-    "X", "X", "X"
-]
-
-const testCase_2 = [
-    "", "X", "",
-    "", "X", "",
-    "", "X", ""
-]
-
-
 // helper functions 
 const getGridID = (grid) => {
-    let gridID = grid.target.id
+    let gridID = grid.id
     gridID = gridID.slice(gridID.length-1, gridID.length);
+
     return gridID
+}
+
+const updateGameBoard = (e) => {
+    let gridID = getGridID(e);
+    //prevents player from placing additional marks if it's already finished
+    if (!gameBoard.isGameFinished()) {
+        // updateBoard attempts to update the board, returns boolean
+        if (gameBoard.updateBoard(gridID, gameBoard.getCurrentPlayer())) {
+            displayController.updateBoardGrids(e)
+            gameBoard.checkWinner()
+
+            //checking if it's finished after the update
+            if (!gameBoard.isGameFinished()) {
+                gameBoard.updateCurrentPlayer()
+                displayController.updateCurrentPlayerStatus()
+            } else {
+                gameOver()
+            }
+
+            //check for draws instead 
+            if (!gameBoard.checkForDraws()) {
+                gameOver()
+            }
+        }
+    }
+}
+
+const gameOver = () => {
+    displayController.updateGameStatus()
+    displayController.unhideGameStatusContainer()
+}
+
+const newGame = () => {
+    gameBoard.newGame()
+    gameBoard.resetBoard()    
+    if (gameBoard.getCurrentPlayer() == "O") {
+        gameBoard.updateCurrentPlayer()
+    }
 }
 
 
@@ -198,19 +256,26 @@ container.addEventListener("click", (e) => {
         let playingWithAI = e.target.id == "play-with-AI" ? true : false
         gameBoard.updatePlayWithAI(playingWithAI)
 
-        if (!playingWithAI) {
-            let OMark = document.querySelector("#mark-O")
-            // player is defaulted to X
-            if (OMark.checked) {
-                gameBoard.updateCurrentPlayer()
-            }
-        } 
+        // Still contemplating if I should default to X first
+        // if (!playingWithAI) {
+        //     let OMark = document.querySelector("#mark-O")
+        //     // player is defaulted to X
+        //     if (OMark.checked) {
+        //         gameBoard.updateCurrentPlayer()
+        //     }
+        // } 
 
-        displayController.boardPage(gameBoard.getCurrentPlayer())
+        displayController.boardPage("X")
 
     } else if (e.target.className == "board-grid") {
-        gameBoard.updateBoard(e, gameBoard.getCurrentPlayer())
+        updateGameBoard(e.target)
         gameBoard.printBoard()
+    } else if (e.target.id == "replay") {
+        newGame()
+        displayController.boardPage(gameBoard.getCurrentPlayer())
+    } else if (e.target.id == "restart") {
+        newGame()
+        displayController.landingPage()
     } else {
         console.log(e.target.id)
     }

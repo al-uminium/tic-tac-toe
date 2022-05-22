@@ -114,6 +114,11 @@ html, body {
     text-align: center;
 }
 
+.player-page-header span {
+    font-size: 1.5rem;
+    font-family: 'Lato', sans-serif;
+}
+
 .mark-radio-container input[type="radio"] {
     opacity: 0;
     width: 0;
