@@ -179,6 +179,7 @@ const testCase_2 = [
 const getGridID = (grid) => {
     let gridID = grid.target.id
     gridID = gridID.slice(gridID.length-1, gridID.length);
+    return gridID
 }
 
 
