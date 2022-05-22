@@ -118,7 +118,9 @@ const gameBoard = ((e) => {
         let gridID = getGridID(e)
         if (!board[gridID]) {
             board[gridID] = currentPlayerTurn
-            displayController.updateBoardGrids(e)
+            displayController.updateBoardGrids(e.target)
+            updateCurrentPlayer()
+            displayController.updateCurrentPlayerStatus()
             checkWinner(board)
         }
     }
@@ -207,11 +209,8 @@ container.addEventListener("click", (e) => {
         displayController.boardPage(gameBoard.getCurrentPlayer())
 
     } else if (e.target.className == "board-grid") {
-        gameBoard.updateBoard(e, "X")
+        gameBoard.updateBoard(e, gameBoard.getCurrentPlayer())
         gameBoard.printBoard()
-        e.target.innerText = gameBoard.getCurrentPlayer()
-        gameBoard.updateCurrentPlayer()
-        displayController.updateCurrentPlayerStatus()
     } else {
         console.log(e.target.id)
     }
