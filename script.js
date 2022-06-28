@@ -81,16 +81,16 @@ const displayController = (() => {
         const gameStatus = document.querySelector(".game-status")
         let winningPlayer = gameBoard.getCurrentPlayer()
         
-        // if it's a draw
-        if (!gameBoard.checkForDraws) {
-            gameStatus.innerText = "It's a draw!"
-        }
-
+        
         if (gameBoard.playingWithAI()) {
             gameStatus.innerText = winningPlayer == "O" ? "You lost :(" : "You won!"
         } else {
             gameStatus.innerText = `${winningPlayer} won!`
         }
+        // if it's a draw
+        if (gameBoard.getDrawStatus()) {
+            gameStatus.innerText = "It's a draw!"
+        } 
     }
 
     return {
@@ -115,6 +115,8 @@ const gameBoard = ((e) => {
     let currentPlayer = "X";
     let playWithAI = false;
     let gameFinished = false;
+    let isWin = false
+    let isDraw = false;
 
     const winArrays = [
         // horizontal
@@ -130,17 +132,36 @@ const gameBoard = ((e) => {
         [2, 4, 6]
     ]
 
-    const checkWinner = () => {
+    const checkForWin = () => {
+
         for (const arr of winArrays) {
+            //board[arr[0]] is to ensure they are not empty. 
             if (board[arr[0]] && board[arr[0]] == board[arr[1]] && board[arr[1]] == board[arr[2]]) {
                 console.log(`Winning array is: ${arr}, winner is ${getCurrentPlayer()}`)
-                gameFinished = true
+                isWin = true;
+                isDraw = false;
+                gameFinished = true;
+            } else if (checkForDraws()) {
+                isDraw = true;
+                isWin = false;
             }
         }
     }
 
+    const getGameFinishedStatus = () => {
+        return gameFinished
+    }
+
+    const getDrawStatus = () => {
+        return isDraw
+    }
+
+    const getWinStatus = () => {
+        return isWin
+    }
+
     const checkForDraws = () => {
-        return board.includes("")
+        return (!board.includes("")) 
     }
 
     const updateBoard = (id, currentPlayerTurn) => {
@@ -179,6 +200,8 @@ const gameBoard = ((e) => {
 
     const newGame = () => {
         gameFinished = false
+        isWin = false
+        isDraw = false
     }
 
     return {
@@ -189,10 +212,13 @@ const gameBoard = ((e) => {
         updateCurrentPlayer, 
         playingWithAI,
         updatePlayWithAI,
-        checkWinner,
+        checkForWin,
         isGameFinished,
         newGame,
         checkForDraws,
+        getGameFinishedStatus,
+        getDrawStatus,
+        getWinStatus,
     }
 })();
 
@@ -211,7 +237,7 @@ const updateGameBoard = (e) => {
         // updateBoard attempts to update the board, returns boolean
         if (gameBoard.updateBoard(gridID, gameBoard.getCurrentPlayer())) {
             displayController.updateBoardGrids(e)
-            gameBoard.checkWinner()
+            gameBoard.checkForWin()
 
             //checking if it's finished after the update
             if (!gameBoard.isGameFinished()) {
@@ -221,8 +247,8 @@ const updateGameBoard = (e) => {
                 gameOver()
             }
 
-            //check for draws instead 
-            if (!gameBoard.checkForDraws()) {
+            //check for draws instead
+            if (gameBoard.getDrawStatus()) {
                 gameOver()
             }
         }
