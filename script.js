@@ -1,6 +1,6 @@
 //Query Selectors
 const container = document.querySelector(".container");
-const currentPlayerTurn = document.querySelector(".current-player-turn")
+// const currentPlayerTurn = document.querySelector(".current-player-turn")
 const boardGrid = document.querySelector(".board-grid")
 
 //Module for display
@@ -30,11 +30,10 @@ const displayController = (() => {
         container.id = "player-page"
     }
 
-    const boardPage = (currentPlayer) => {
-        let currentPlayerTurn = currentPlayer
-        let HTMLsnippet = `<div class="current-player-turn">${currentPlayerTurn}'s turn</div>`
+    const boardPage = () => {
+        let HTMLsnippet = `<div class="current-player-turn">${gameBoard.getCurrentPlayer()}'s turn</div>`
         if (gameBoard.playingWithAI()) {
-            HTMLsnippet = `<div class="current-player-turn">STILL A WIP</div>`
+            HTMLsnippet = `<div class="current-player-turn">🤖 Supremacy</div>`
         }
 
         container.innerHTML = `
@@ -84,17 +83,19 @@ const displayController = (() => {
 
     const updateGameStatus = () => {
         const gameStatus = document.querySelector(".game-status")
-        let winningPlayer = gameBoard.getWinner()
-        
-        if (gameBoard.playingWithAI()) {
-            gameStatus.innerText = winningPlayer == "O" ? "You lost :(" : "You won!"
-        } else {
-            gameStatus.innerText = `${winningPlayer} won!`
+        let gameResult = gameBoard.checkForWin()
+
+        if (gameBoard.getGameFinishedStatus()) {
+            if (gameBoard.playingWithAI()) {
+                gameStatus.innerText = gameResult == "O" ? "You lost :(" : "You won!"
+            } 
+            if (!gameBoard.playingWithAI()) {
+                gameStatus.innerText = `${gameResult} won!`
+            }
+            if (gameResult === "draw") {
+                gameStatus.innerText = "It's a draw!"
+            }
         }
-        // if it's a draw
-        if (gameBoard.getDrawStatus()) {
-            gameStatus.innerText = "It's a draw!"
-        } 
     }
 
     return {
@@ -120,9 +121,6 @@ const gameBoard = ((e) => {
     let currentPlayer = "X";
     let playWithAI = false;
     let gameFinished = false;
-    let isWin = false
-    let isDraw = false;
-    let winner 
 
     const winArrays = [
         // horizontal
@@ -139,19 +137,20 @@ const gameBoard = ((e) => {
     ]
 
     const checkForWin = () => {
-
         for (const arr of winArrays) {
             //board[arr[0]] is to ensure they are not empty. 
-            if (board[arr[0]] && board[arr[0]] == board[arr[1]] && board[arr[1]] == board[arr[2]]) {
+            console.log(arr)
+            console.log(Boolean(board[arr[0]]), board[arr[0]] == board[arr[1]], board[arr[0]] == board[arr[2]])
+            if (board[arr[0]] && board[arr[0]] == board[arr[1]] && board[arr[0]] == board[arr[2]]) {
                 console.log(`Winning array is: ${arr}, winner is ${board[arr[0]]}`)
-                isWin = true;
-                isDraw = false;
                 gameFinished = true;
                 winner = board[arr[0]]
-            } else if (checkForDraws()) {
-                isDraw = true;
-                isWin = false;
-            }
+                return winner
+            } 
+        }
+        if (!board.includes("")) {
+            gameFinished = true;
+            return "draw"
         }
     }
 
@@ -159,24 +158,8 @@ const gameBoard = ((e) => {
         return gameFinished
     }
 
-    const getDrawStatus = () => {
-        return isDraw
-    }
-
-    const getWinStatus = () => {
-        return isWin
-    }
-
-    const getWinner = () => {
-        return winner
-    }
-
-    const checkForDraws = () => {
-        return (!board.includes("")) 
-    }
-
     const updateBoard = (id, currentPlayerTurn) => {
-        console.log(id)
+        // console.log(id)
         if (!board[id]) {
             board[id] = currentPlayerTurn
             return true
@@ -185,8 +168,8 @@ const gameBoard = ((e) => {
         }
     }
 
-    const printBoard = () => {
-        console.log(board)
+    const getBoard = () => {
+        return board
     }
 
     const resetBoard = () => {
@@ -213,24 +196,37 @@ const gameBoard = ((e) => {
         playWithAI = bool
     }
 
-    const isGameFinished = () => {
-        return gameFinished
-    }
-
     const newGame = () => {
         gameFinished = false
-        isWin = false
-        isDraw = false
     }
 
     const aiTurn = () => {
-        let easyMode = true
+        let easyMode = false
         let availableGrids = []
         
         const randomGrid = () => {
             let len = availableGrids.length
             let random = availableGrids[Math.floor(Math.random() * len)]
             return random
+        }
+
+        const minimax = (boardGrid, depth, maximizingPlayer) => {
+            //depth will be 0 if there's no more moves
+            //the "node" will be the board states
+            //maximizing player is the AI
+            let gameResult = gameBoard.checkForWin()
+
+    
+            if (availableGrids.length === 0 || getGameFinishedStatus()) {
+                if (gameResult == "X") {
+                    return 1
+                } else if (gameResult == "O") {
+                    return -1
+                } else if (gameResult == "draw") {
+                    return 0
+                }
+            }
+            return 1;
         }
         
         for (let i = 0; i < 9; i++) {
@@ -242,26 +238,40 @@ const gameBoard = ((e) => {
             let aiMove = randomGrid()
             updateBoard(aiMove, getCurrentPlayer())
             displayController.updateBoardGridsAI(aiMove)
+
+        } else {
+            let bestScore = -Infinity;
+            let currentBoard = getBoard()
+            let bestMove;
+
+            availableGrids.forEach(boardGrid => {
+                currentBoard[boardGrid] = "O"
+                let score = minimax(currentBoard, 0, true)
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMove = boardGrid;
+                }
+                currentBoard[boardGrid] = ""
+            });
+
+            updateBoard(bestMove, getCurrentPlayer())
+            displayController.updateBoardGridsAI(bestMove)
+
         }
     }
 
     return {
         updateBoard,
-        printBoard,
+        getBoard,
         resetBoard,
         getCurrentPlayer,
         updateCurrentPlayer, 
         playingWithAI,
         updatePlayWithAI,
         checkForWin,
-        isGameFinished,
         newGame,
-        checkForDraws,
         getGameFinishedStatus,
-        getDrawStatus,
-        getWinStatus,
         aiTurn,
-        getWinner,
     }
 })();
 
@@ -275,29 +285,32 @@ const getGridID = (grid) => {
 
 const updateGameBoard = (e) => {
     let gridID = getGridID(e);
+    let gameStatus = gameBoard.checkForWin()
 
     //prevents player from placing additional marks if it's already finished
-    if (!gameBoard.isGameFinished()) {
+    if (!gameBoard.getGameFinishedStatus()) {
         // updateBoard attempts to update the board, returns boolean
         if (gameBoard.updateBoard(gridID, gameBoard.getCurrentPlayer())) {
             displayController.updateBoardGrids(e)
-            gameBoard.checkForWin()
+            gameStatus = gameBoard.checkForWin()
 
             //checking if it's finished after the update
-            if (!gameBoard.isGameFinished()) {
+            if (!gameBoard.getGameFinishedStatus()) {
                 gameBoard.updateCurrentPlayer()
-                if (!gameBoard.playingWithAI){
+                if (!gameBoard.playingWithAI()) {
                     displayController.updateCurrentPlayerStatus()
-                }
-                console.log(gameBoard.playingWithAI())
-                if (gameBoard.playingWithAI()) {
+
+                } else if (gameBoard.playingWithAI()) {
                     gameBoard.aiTurn()
-                    gameBoard.checkForWin()
-                    gameBoard.updateCurrentPlayer()
+                    gameStatus = gameBoard.checkForWin()
+                    if (!gameBoard.getGameFinishedStatus()) {
+                        //the update below is to switch it back to X since it's the player's turn again
+                        gameBoard.updateCurrentPlayer()
+                    }
                 }
             } 
             //check for draws instead
-            if (gameBoard.getDrawStatus() || gameBoard.getGameFinishedStatus()) {
+            if (gameStatus == "draw" || gameBoard.getGameFinishedStatus()) {
                 gameOver()
             }
 
@@ -313,7 +326,6 @@ const gameOver = () => {
 const newGame = () => {
     gameBoard.newGame()
     gameBoard.resetBoard()
-    gameBoard.updatePlayWithAI = false  
     if (gameBoard.getCurrentPlayer() == "O") {
         gameBoard.updateCurrentPlayer()
     }
@@ -332,20 +344,11 @@ container.addEventListener("click", (e) => {
     } else if (e.target.id == "play-with-AI" || e.target.id == "start-btn") {
         let playingWithAI = e.target.id == "play-with-AI" ? true : false
         gameBoard.updatePlayWithAI(playingWithAI)
-
-        // Still contemplating if I should default to X first
-        // if (!playingWithAI) {
-        //     let OMark = document.querySelector("#mark-O")
-        //     if (OMark.checked) {
-        //         gameBoard.updateCurrentPlayer()
-        //     }
-        // } 
-
         displayController.boardPage("X")
 
     } else if (e.target.className == "board-grid") {
         updateGameBoard(e.target)
-        gameBoard.printBoard()
+        console.log(gameBoard.getBoard())
     } else if (e.target.id == "replay") {
         newGame()
         displayController.boardPage(gameBoard.getCurrentPlayer())
@@ -353,6 +356,6 @@ container.addEventListener("click", (e) => {
         newGame()
         displayController.landingPage()
     } else {
-        console.log(e.target.id)
+        // console.log(e.target.id)
     }
 })
