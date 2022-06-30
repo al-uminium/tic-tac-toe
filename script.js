@@ -1,7 +1,7 @@
 //Query Selectors
 const container = document.querySelector(".container");
 // const currentPlayerTurn = document.querySelector(".current-player-turn")
-const boardGrid = document.querySelector(".board-grid")
+const grid = document.querySelector(".board-grid")
 
 //Module for display
 const displayController = (() => {
@@ -67,11 +67,11 @@ const displayController = (() => {
         }
     }
 
-    const updateBoardGrids = (grid) => {
+    const updategrids = (grid) => {
         grid.innerText = gameBoard.getCurrentPlayer();
     }
 
-    const updateBoardGridsAI = (grid) => {
+    const updategridsAI = (grid) => {
         let aiGrid = document.querySelector(`#grid-${grid}`)
         aiGrid.innerText = "O"
     }
@@ -103,10 +103,10 @@ const displayController = (() => {
         playerPage,
         boardPage,
         updateCurrentPlayerStatus,
-        updateBoardGrids,
+        updategrids,
         unhideGameStatusContainer,
         updateGameStatus,
-        updateBoardGridsAI,
+        updategridsAI,
     }
 })();
 
@@ -139,8 +139,6 @@ const gameBoard = ((e) => {
     const checkForWin = () => {
         for (const arr of winArrays) {
             //board[arr[0]] is to ensure they are not empty. 
-            console.log(arr)
-            console.log(Boolean(board[arr[0]]), board[arr[0]] == board[arr[1]], board[arr[0]] == board[arr[2]])
             if (board[arr[0]] && board[arr[0]] == board[arr[1]] && board[arr[0]] == board[arr[2]]) {
                 console.log(`Winning array is: ${arr}, winner is ${board[arr[0]]}`)
                 gameFinished = true;
@@ -201,63 +199,30 @@ const gameBoard = ((e) => {
     }
 
     const aiTurn = () => {
-        let easyMode = false
         let availableGrids = []
-        
-        const randomGrid = () => {
-            let len = availableGrids.length
-            let random = availableGrids[Math.floor(Math.random() * len)]
-            return random
-        }
-
-        const minimax = (boardGrid, depth, maximizingPlayer) => {
-            //depth will be 0 if there's no more moves
-            //the "node" will be the board states
-            //maximizing player is the AI
-            let gameResult = gameBoard.checkForWin()
-
-    
-            if (availableGrids.length === 0 || getGameFinishedStatus()) {
-                if (gameResult == "X") {
-                    return 1
-                } else if (gameResult == "O") {
-                    return -1
-                } else if (gameResult == "draw") {
-                    return 0
-                }
-            }
-            return 1;
-        }
         
         for (let i = 0; i < 9; i++) {
             if (board[i] == "") {
                 availableGrids.push(i)
             }
         }
-        if (easyMode) {
-            let aiMove = randomGrid()
-            updateBoard(aiMove, getCurrentPlayer())
-            displayController.updateBoardGridsAI(aiMove)
 
-        } else {
-            let bestScore = -Infinity;
-            let currentBoard = getBoard()
-            let bestMove;
+        let bestScore = -Infinity;
+        let bestMove;
+        let currentBoard = getBoard()
 
-            availableGrids.forEach(boardGrid => {
-                currentBoard[boardGrid] = "O"
-                let score = minimax(currentBoard, 0, true)
-                if (score > bestScore) {
-                    bestScore = score;
-                    bestMove = boardGrid;
-                }
-                currentBoard[boardGrid] = ""
-            });
+        availableGrids.forEach(grid => {
+            currentBoard[grid] = "O"
+            let score = minimax(currentBoard, 0, false)
+            currentBoard[grid] = ""
+            if (score > bestScore) {
+                bestScore = score
+                bestMove = grid
+            }
+        });
 
-            updateBoard(bestMove, getCurrentPlayer())
-            displayController.updateBoardGridsAI(bestMove)
-
-        }
+        updateBoard(bestMove, "O")
+        displayController.updategridsAI(bestMove)
     }
 
     return {
@@ -275,6 +240,56 @@ const gameBoard = ((e) => {
     }
 })();
 
+const minimax = (currentBoard, depth, maximizingPlayer) => {
+    //depth will be 0 if there's no more moves
+    //the "node" will be the board states
+    //maximizing player is the player (?) --> player wants to maximize the outcome to win, AI wants to minimize lost
+    let availableGrids = []
+        
+    for (let i = 0; i < 9; i++) {
+        if (currentBoard[i] == "") {
+            availableGrids.push(i)
+        }
+    }
+
+    let gameResult = gameBoard.checkForWin()
+
+    console.log(currentBoard)
+
+    if (gameResult !== null) {
+        if (gameResult == "X") {
+            return 1
+        } else if (gameResult == "O") {
+            return -1
+        } else if (gameResult == "draw") {
+            return 0
+        }
+    }
+
+    if (maximizingPlayer) {
+        let bestScore = -Infinity;
+
+        availableGrids.forEach(grid => {
+            currentBoard[grid] = "O"
+            let score = minimax(currentBoard, depth + 1, false)
+            currentBoard[grid] = ""
+            bestScore = Math.max(score, bestScore)
+        });
+        return bestScore
+    }
+
+    if (!maximizingPlayer) {
+        let bestScore = Infinity;
+        availableGrids.forEach(grid => {
+            currentBoard[grid] = "X"
+            let score = minimax(currentBoard, depth + 1,true)
+            currentBoard[grid] = ""
+            bestScore = Math.min(score, bestScore)
+        });
+        return bestScore
+    }
+}
+
 // helper functions 
 const getGridID = (grid) => {
     let gridID = grid.id
@@ -291,7 +306,7 @@ const updateGameBoard = (e) => {
     if (!gameBoard.getGameFinishedStatus()) {
         // updateBoard attempts to update the board, returns boolean
         if (gameBoard.updateBoard(gridID, gameBoard.getCurrentPlayer())) {
-            displayController.updateBoardGrids(e)
+            displayController.updategrids(e)
             gameStatus = gameBoard.checkForWin()
 
             //checking if it's finished after the update
