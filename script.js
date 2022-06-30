@@ -140,16 +140,22 @@ const gameBoard = ((e) => {
         for (const arr of winArrays) {
             //board[arr[0]] is to ensure they are not empty. 
             if (board[arr[0]] && board[arr[0]] == board[arr[1]] && board[arr[0]] == board[arr[2]]) {
-                console.log(`Winning array is: ${arr}, winner is ${board[arr[0]]}`)
-                gameFinished = true;
+                // console.log(`Winning array is: ${arr}, winner is ${board[arr[0]]}`)
                 winner = board[arr[0]]
                 return winner
             } 
         }
         if (!board.includes("")) {
-            gameFinished = true;
             return "draw"
         }
+    }
+
+    const updateGameFinished = () => {
+        let gameResult = checkForWin()
+        if (gameResult != null) {
+            gameFinished = true
+        }
+        return gameResult
     }
 
     const getGameFinishedStatus = () => {
@@ -212,16 +218,17 @@ const gameBoard = ((e) => {
         let currentBoard = getBoard()
 
         availableGrids.forEach(grid => {
-            currentBoard[grid] = "O"
-            let score = minimax(currentBoard, 0, false)
+            currentBoard[grid] = getCurrentPlayer()
+            let score = minimax(currentBoard, false)
             currentBoard[grid] = ""
             if (score > bestScore) {
                 bestScore = score
                 bestMove = grid
             }
         });
-
-        updateBoard(bestMove, "O")
+        console.log(bestMove, "move")
+        
+        updateBoard(bestMove, getCurrentPlayer())
         displayController.updategridsAI(bestMove)
     }
 
@@ -237,13 +244,20 @@ const gameBoard = ((e) => {
         newGame,
         getGameFinishedStatus,
         aiTurn,
+        updateGameFinished,
     }
 })();
 
-const minimax = (currentBoard, depth, maximizingPlayer) => {
-    //depth will be 0 if there's no more moves
+const minimax = (currentBoard, maximizingPlayer) => {
     //the "node" will be the board states
+    //depth is the number of iterations it went through
     //maximizing player is the player (?) --> player wants to maximize the outcome to win, AI wants to minimize lost
+    let scores = {
+        X: -1,
+        O: 1,
+        draw: 0
+    }
+
     let availableGrids = []
         
     for (let i = 0; i < 9; i++) {
@@ -254,35 +268,24 @@ const minimax = (currentBoard, depth, maximizingPlayer) => {
 
     let gameResult = gameBoard.checkForWin()
 
-    console.log(currentBoard)
-
-    if (gameResult !== null) {
-        if (gameResult == "X") {
-            return 1
-        } else if (gameResult == "O") {
-            return -1
-        } else if (gameResult == "draw") {
-            return 0
-        }
+    if (gameResult != null) {
+        return scores[gameResult]
     }
 
     if (maximizingPlayer) {
         let bestScore = -Infinity;
-
         availableGrids.forEach(grid => {
             currentBoard[grid] = "O"
-            let score = minimax(currentBoard, depth + 1, false)
+            let score = minimax(currentBoard, false)
             currentBoard[grid] = ""
             bestScore = Math.max(score, bestScore)
         });
         return bestScore
-    }
-
-    if (!maximizingPlayer) {
+    } else {
         let bestScore = Infinity;
         availableGrids.forEach(grid => {
             currentBoard[grid] = "X"
-            let score = minimax(currentBoard, depth + 1,true)
+            let score = minimax(currentBoard, true)
             currentBoard[grid] = ""
             bestScore = Math.min(score, bestScore)
         });
@@ -300,14 +303,15 @@ const getGridID = (grid) => {
 
 const updateGameBoard = (e) => {
     let gridID = getGridID(e);
-    let gameStatus = gameBoard.checkForWin()
+    let gameStatus = gameBoard.updateGameFinished()
+
 
     //prevents player from placing additional marks if it's already finished
     if (!gameBoard.getGameFinishedStatus()) {
         // updateBoard attempts to update the board, returns boolean
         if (gameBoard.updateBoard(gridID, gameBoard.getCurrentPlayer())) {
             displayController.updategrids(e)
-            gameStatus = gameBoard.checkForWin()
+            gameStatus = gameBoard.updateGameFinished()
 
             //checking if it's finished after the update
             if (!gameBoard.getGameFinishedStatus()) {
@@ -317,7 +321,7 @@ const updateGameBoard = (e) => {
 
                 } else if (gameBoard.playingWithAI()) {
                     gameBoard.aiTurn()
-                    gameStatus = gameBoard.checkForWin()
+                    gameStatus = gameBoard.updateGameFinished()
                     if (!gameBoard.getGameFinishedStatus()) {
                         //the update below is to switch it back to X since it's the player's turn again
                         gameBoard.updateCurrentPlayer()
